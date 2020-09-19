@@ -1,0 +1,7 @@
+Currency downloader script
+==========================
+
+Data source:
+1, ECB:
+https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
+

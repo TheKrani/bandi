@@ -8,7 +8,6 @@ import datetime
 
 # configuration
 xml_url = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
-tempfile = "temp-currencies.xml"
 datafile = "currencies.csv"
 
 def get_xml_data(url):
@@ -18,10 +17,10 @@ def get_xml_data(url):
         print("HTTP request to download data failed!")
         sys.exit(1)
     if len(resp.content) > 2000:
-        print("xml input file is larger then 2000 byte!")
+        print("xml input file is larger than 2000 byte!")
         sys.exit(2)
     print("xml content length:", len(resp.content))
-    return resp.content
+    return resp.content.decode('utf-8')
 
 def open_output_file(fname):
     # open output csv file
@@ -93,16 +92,12 @@ def get_daydata(root):
 def main():
     # get xml data and write it to file
     content = get_xml_data(xml_url)
-    ftemp = open(tempfile, 'wb')
-    ftemp.write(content)
-    ftemp.close()
 
     # open output file
     outf = open_output_file(datafile)
 
     # parse data xml
-    tree = ET.parse(tempfile)
-    root = tree.getroot()
+    root = ET.fromstring(content)
     dayd = get_daydata(root)
 
     write_daydata(outf, dayd)

@@ -9,6 +9,7 @@ import datetime
 # configuration
 xml_url = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
 datafile = "currencies.csv"
+currency_list = ["HUF", "USD", "CHF", "JPY"]
 
 def get_xml_data(url):
     # get xml data file from url and return with its content
@@ -21,13 +22,17 @@ def get_xml_data(url):
         sys.exit(2)
     return resp.content.decode('utf-8')
 
-def open_output_file(fname):
+def open_output_file(fname, clist):
     # open output csv file
     outfile_is_existing = os.path.isfile(fname)
     fp = open(fname, "a+")
     if not outfile_is_existing:
         # create csv header first if the file did not exist before
-        fp.write("date;EUR-HUF;EUR-USD;EUR-CHF;EUR-JPY\n")
+        header = "date;"
+        for item in clist:
+            header += "EUR-" + item + ';'
+        header = header[:-1] + '\n'
+        fp.write(header)
     return fp
 
 def get_last_line(fp):
@@ -37,7 +42,7 @@ def get_last_line(fp):
         pass
     return last_line
 
-def write_daydata(fp, d):
+def write_daydata(fp, d, clist):
     up_to_date = False
     line = ""
     new_data_date = d['date']
@@ -53,8 +58,9 @@ def write_daydata(fp, d):
         if last_date >= new_data_date:
             up_to_date = True
 
-    for val in d.values():
-        line += val + ';'
+    line = d['date'] + ';'
+    for cname in clist:
+        line += d[cname] + ';'
 
     line = line[:-1] + '\n'
     if not up_to_date:
@@ -64,7 +70,7 @@ def write_daydata(fp, d):
         print("Data is up-to date, no data written!")
     return
 
-def get_daydata(root):
+def get_daydata(root, clist):
     money = root[2][0]
     timedate = root[2][0].attrib['time']
 
@@ -72,17 +78,11 @@ def get_daydata(root):
     for child in money:
         l.append(child.attrib)
 
-    daydata = {'date': '', 'huf': 0, 'usd' : 0, 'chf' : 0, 'jpy' : 0}
+    daydata = {'date': ''}
     daydata['date'] = timedate
     for item in l:
-        if item['currency'] == 'HUF':
-            daydata['huf'] = item['rate']
-        elif item['currency'] == 'USD':
-            daydata['usd'] = item['rate']
-        elif item['currency'] == 'CHF':
-            daydata['chf'] = item['rate']
-        elif item['currency'] == 'JPY':
-            daydata['jpy'] = item['rate']
+        if item['currency'] in clist:
+            daydata[item['currency']] = item['rate']
         else:
             pass
     return daydata
@@ -92,13 +92,13 @@ def main():
     content = get_xml_data(xml_url)
 
     # open output file
-    outf = open_output_file(datafile)
+    outf = open_output_file(datafile, currency_list)
 
     # parse data xml
     root = ET.fromstring(content)
-    dayd = get_daydata(root)
+    dayd = get_daydata(root, currency_list)
 
-    write_daydata(outf, dayd)
+    write_daydata(outf, dayd, currency_list)
     outf.close()
 
 if __name__ == '__main__':
